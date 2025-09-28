@@ -65,13 +65,17 @@ func initDB(){
 
 
 func getAllBooks(c *gin.Context) {
-	yearQuery := c.Query("year")
+	
     var rows *sql.Rows
     var err error
     // ลูกค้าถาม "มีหนังสืออะไรบ้าง"
+    yearQuery := c.Query("year")
+    if yearQuery != "" {
+        rows, err = db.Query("SELECT id, title, author, isbn, year, price, created_at, updated_at FROM books WHERE year=$1", yearQuery)
+    } else {
+        rows, err = db.Query("SELECT id, title, author, isbn, year, price, created_at, updated_at FROM books")
+    }
 
-
-    rows, err = db.Query("SELECT id, title, author, isbn, year, price, created_at, updated_at FROM books")
     if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
@@ -87,25 +91,13 @@ func getAllBooks(c *gin.Context) {
         }
         books = append(books, book)
     }
-	if books == nil {
-		books = []Book{}
-	}
 
-	c.JSON(http.StatusOK, books)
+    if len(books) == 0 {
+        c.JSON(http.StatusNotFound, gin.H{"message": "book not found"})
+        return
+    }
 
-    if yearQuery != "" {
-		filter := []Book{}
-		for _, book := range books {
-			if fmt.Sprint(book.Year) == yearQuery {
-				filter = append(filter, book)
-			}
-		}
-		c.JSON(http.StatusOK, filter)
-		return
-	}
-
-	c.JSON(http.StatusOK, books)
-
+    c.JSON(http.StatusOK, books)
 }
 
 func getBook(c *gin.Context) {
